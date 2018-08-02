@@ -46,7 +46,10 @@ sed -i "s/{{DB_NAME}}/$DB_NAME/g" /etc/dovecot/dovecot-sql.conf
 sed -i "s/{{DB_PASSWORD}}/$DB_PASSWORD/g" /etc/dovecot/dovecot-sql.conf
 
 sed -i "s/{{APP_HOST}}/$APP_HOST/g" /etc/dovecot/local.conf
+postconf -e myhostname="$APP_HOST"
 
+[ -z ${MYNETWORKS+x} ] || postconf -e "`postconf mynetworks` $MYNETWORKS"
+[ -z ${RELAYHOST+x} ] || postconf -e "relayhost = $RELAYHOST"
 mkdir /run/dovecot
 chmod -R +r /run/dovecot
 chmod -R +w /run/dovecot
@@ -56,4 +59,6 @@ rsyslogd
 
 # run Postfix and Dovecot
 postfix start
-dovecot -F
+dovecot
+tail -f /var/log/mail.log
+

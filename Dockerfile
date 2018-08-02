@@ -16,11 +16,19 @@ RUN postconf -e virtual_uid_maps=static:5000 && \
     postconf -e virtual_alias_maps=mysql:/etc/postfix/mysql-virtual-alias-maps.cf,mysql:/etc/postfix/mysql-email2email.cf && \
     postconf -e virtual_transport=dovecot && \
     postconf -e dovecot_destination_recipient_limit=1 && \
+    postconf -e 'smtpd_sasl_type = dovecot' && \
+    postconf -e 'smtpd_sasl_auth_enable = yes' && \
+    postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated,permit_mynetworks,reject_unauth_destination' && \
+    postconf -e 'smtpd_sasl_path = private/auth' && \
+    postconf -e "smtpd_client_message_rate_limit = 4" && \
+    postconf -e "smtpd_tls_auth_only = yes" && \
     # specially for docker
-    postconf -F '*/*/chroot = n'
+    postconf -F '*/*/chroot = n' && \
 
 RUN echo "dovecot   unix  -       n       n       -       -       pipe"  >> /etc/postfix/master.cf && \
-    echo '    flags=DRhu user=vmail:vmail argv=/usr/lib/dovecot/deliver -d ${recipient}' >> /etc/postfix/master.cf
+    echo '    flags=DRhu user=vmail:vmail argv=/usr/lib/dovecot/deliver -d ${user}@${nexthop}' >> /etc/postfix/master.cf && \
+    sed -i -e '/^#submission/,/^#smtps/{s/#subm/subm/;s/^# / /;/$mua/d}' /etc/postfix/master.cf && \
+    sed -i -e "/^!include auth-system.conf.ext$/d" /etc/dovecot/conf.d/10-auth.conf
 
 ADD start.sh /start.sh  
 
